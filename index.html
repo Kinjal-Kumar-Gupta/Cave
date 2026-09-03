@@ -1939,7 +1939,32 @@
             padding: 28px 0;
         }
 
-        .ambient-orb { display: none; }
+        .ambient-orb {
+            position: fixed;
+            border-radius: 50%;
+            z-index: -1;
+            pointer-events: none;
+            will-change: transform;
+            filter: blur(80px);
+            display: block !important;
+            opacity: 0.13;
+        }
+        .orb-1 {
+            width: 440px;
+            height: 440px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.7) 0%, rgba(168, 85, 247, 0.3) 45%, transparent 70%);
+            top: -60px;
+            right: -60px;
+            animation: floatGlow 14s ease-in-out infinite alternate;
+        }
+        .orb-2 {
+            width: 480px;
+            height: 480px;
+            background: radial-gradient(circle, rgba(14, 165, 233, 0.65) 0%, rgba(99, 102, 241, 0.25) 45%, transparent 70%);
+            bottom: 5%;
+            left: -80px;
+            animation: floatGlow 18s ease-in-out infinite alternate-reverse;
+        }
 
         .container { max-width: 1320px; }
 
@@ -2284,16 +2309,13 @@
         .clock-grid .glass.anim-enter:nth-child(1) { animation-delay: 0.10s; }
         .clock-grid .glass.anim-enter:nth-child(2) { animation-delay: 0.17s; }
         .clock-grid .glass.anim-enter:nth-child(3) { animation-delay: 0.24s; }
-        .progress-grid .glass.anim-enter:nth-child(1) { animation-delay: 0.28s; }
-        .progress-grid .glass.anim-enter:nth-child(2) { animation-delay: 0.33s; }
-        .progress-grid .glass.anim-enter:nth-child(3) { animation-delay: 0.38s; }
-        .bottom-grid .glass.anim-enter:nth-child(1) { animation-delay: 0.40s; }
-        .bottom-grid .glass.anim-enter:nth-child(2) { animation-delay: 0.47s; }
-        .bottom-grid .glass.anim-enter:nth-child(3) { animation-delay: 0.54s; }
-        .links-card.anim-enter { animation-delay: 0.58s; }
-        .auth-card.anim-enter { animation-delay: 0.63s; }
-        .capture-card.anim-enter { animation-delay: 0.68s; }
-        .f1-hub-card.anim-enter { animation-delay: 0.73s; }
+        .bottom-grid .glass.anim-enter:nth-child(1) { animation-delay: 0.30s; }
+        .bottom-grid .glass.anim-enter:nth-child(2) { animation-delay: 0.37s; }
+        .bottom-grid .glass.anim-enter:nth-child(3) { animation-delay: 0.44s; }
+        .links-card.anim-enter { animation-delay: 0.50s; }
+        .auth-card.anim-enter { animation-delay: 0.56s; }
+        .capture-card.anim-enter { animation-delay: 0.62s; }
+        .f1-hub-card.anim-enter { animation-delay: 0.68s; }
 
         /* Enhanced Card Depth */
         .glass {
@@ -2303,10 +2325,10 @@
             box-shadow: 0 16px 34px rgba(0,0,0,0.28), inset 0 1px 0 rgba(229,228,226,0.10);
         }
 
-        /* Clock Card Accent Borders */
-        .clock-card-ny { border-left: 3px solid rgba(59,130,246,0.5) !important; }
-        .clock-card-india { border-left: 3px solid rgba(251,146,60,0.5) !important; }
-        .clock-card-tokyo { border-left: 3px solid rgba(244,63,94,0.5) !important; }
+        /* Clock Card Accent Borders Removed for Clean Uniform Aesthetic */
+        .clock-card-ny, .clock-card-india, .clock-card-tokyo {
+            border-left: 1px solid rgba(229, 228, 226, 0.14) !important;
+        }
 
         .clock-flag {
             font-size: 1.2rem;
@@ -2318,36 +2340,499 @@
 
         .clock-title { display: flex; align-items: center; }
 
-        /* Card Title Accent Underline */
-        .card-title { position: relative; padding-bottom: 6px; }
-        .card-title::after {
-            content: '';
-            position: absolute;
-            bottom: 0; left: 0;
-            width: 28px; height: 2px;
-            background: var(--accent);
-            border-radius: 2px;
-            opacity: 0.6;
-            transition: width 0.3s ease;
-        }
-        .glass:hover .card-title::after { width: 44px; opacity: 1; }
-        .countdown-card .card-title::after,
-        .f1-section .card-title::after { display: none; }
+        /* Card Title */
+        .card-title { position: relative; padding-bottom: 0; }
+        .card-title::after { display: none !important; }
 
-        /* Progress Card Polish */
-        .progress-grid .glass { padding: 14px 18px; }
-        .progress-fill { position: relative; }
-        .progress-fill::after {
-            content: '';
-            position: absolute;
-            right: 0; top: 50%;
-            transform: translateY(-50%);
-            width: 8px; height: 8px;
-            border-radius: 50%;
-            background: inherit;
-            box-shadow: 0 0 6px currentColor;
+
+    
+        /* ==========================================================================
+           Mobile & Responsive Optimization (Phones, Phablets & Small Tablets)
+           ========================================================================== */
+
+        @media (max-width: 960px) {
+            .bottom-grid {
+                grid-template-columns: 1fr !important;
+                gap: 14px !important;
+            }
+
+            .countdown-card {
+                grid-column: span 1 !important;
+                align-items: stretch !important;
+                text-align: left !important;
+            }
+
+            .countdown-card .quote-section,
+            .countdown-card .quote-author {
+                text-align: left !important;
+            }
+
+            .f1-grid-inner {
+                grid-template-columns: 1fr !important;
+                gap: 12px;
+            }
+
+            .f1-standings {
+                max-height: 280px;
+            }
         }
-        .progress-value { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1.25rem; }
+
+        @media (max-width: 768px) {
+            * {
+                -webkit-tap-highlight-color: transparent;
+            }
+
+            body {
+                padding: 12px 0 32px 0 !important;
+                overflow-x: hidden !important;
+            }
+
+            .container {
+                width: calc(100% - 20px) !important;
+                max-width: 100% !important;
+                margin: 0 auto !important;
+            }
+
+            .glass {
+                padding: 14px 15px !important;
+                border-radius: 12px !important;
+            }
+
+            /* Header Polish */
+            .header {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 4px !important;
+                margin: 0 2px 14px !important;
+                padding-bottom: 12px !important;
+            }
+
+            #greeting {
+                font-size: 1.85rem !important;
+                line-height: 1.1 !important;
+            }
+
+            #todayDate {
+                font-size: 0.85rem !important;
+            }
+
+            /* Clocks on Mobile */
+            .clock-grid {
+                grid-template-columns: 1fr !important;
+                gap: 10px !important;
+                margin-bottom: 12px !important;
+            }
+
+            .clock-grid .glass {
+                padding: 12px 16px !important;
+            }
+
+            .clock {
+                font-size: 2.15rem !important;
+                line-height: 1.1 !important;
+                margin: 2px 0 !important;
+                letter-spacing: -0.5px !important;
+            }
+
+            .clock-title {
+                font-size: 0.72rem !important;
+            }
+
+            .date {
+                font-size: 0.82rem !important;
+            }
+
+            /* Moon Phase Widget on Mobile */
+            .moon-card {
+                padding: 14px !important;
+                gap: 12px !important;
+            }
+
+            .moon-body {
+                display: flex !important;
+                flex-direction: row !important;
+                align-items: center !important;
+                justify-content: flex-start !important;
+                gap: 16px !important;
+                padding: 4px 0 !important;
+                text-align: left !important;
+            }
+
+            .moon-image-wrapper {
+                width: 96px !important;
+                height: 96px !important;
+                flex-shrink: 0 !important;
+            }
+
+            .moon-info-panel {
+                align-items: flex-start !important;
+                flex-grow: 1 !important;
+            }
+
+            .moon-phase-title {
+                font-size: 1.4rem !important;
+                line-height: 1.15 !important;
+            }
+
+            .moon-date-subtitle {
+                font-size: 0.8rem !important;
+            }
+
+            .moon-badge-row {
+                flex-wrap: wrap !important;
+                gap: 6px !important;
+                margin-top: 4px !important;
+            }
+
+            .moon-badge {
+                font-size: 0.72rem !important;
+                padding: 3px 8px !important;
+            }
+
+            .moon-controls {
+                display: flex !important;
+                flex-wrap: wrap !important;
+                gap: 6px !important;
+                justify-content: center !important;
+                align-items: center !important;
+                margin-top: 4px !important;
+            }
+
+            .moon-nav-btn {
+                padding: 8px 14px !important;
+                min-height: 38px !important;
+                font-size: 0.8rem !important;
+                border-radius: 6px !important;
+            }
+
+            .moon-date-picker {
+                min-height: 38px !important;
+                font-size: 0.82rem !important;
+                padding: 6px 10px !important;
+            }
+
+            /* Calendar Widget on Mobile */
+            .calendar-container {
+                padding: 0 !important;
+            }
+
+            .calendar-header {
+                margin-bottom: 8px !important;
+            }
+
+            .calendar-title {
+                font-size: 1.05rem !important;
+            }
+
+            .calendar-nav-btn {
+                width: 32px !important;
+                height: 32px !important;
+                font-size: 0.95rem !important;
+            }
+
+            .calendar-weekdays {
+                margin-bottom: 6px !important;
+                font-size: 0.72rem !important;
+            }
+
+            .calendar-days {
+                gap: 4px !important;
+            }
+
+            .calendar-day {
+                font-size: 0.82rem !important;
+                min-height: 36px !important;
+            }
+
+            /* New Year Countdown - Balanced Mobile Units with Zero Overlap */
+            .countdown-card .countdown {
+                display: grid !important;
+                grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+                gap: 6px !important;
+                width: 100% !important;
+                margin: 10px 0 8px !important;
+            }
+
+            .countdown-unit {
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+                min-width: 0 !important;
+                padding: 8px 4px !important;
+                border-radius: 8px !important;
+            }
+
+            .countdown-value {
+                font-size: 1.75rem !important;
+                line-height: 1.1 !important;
+                margin-bottom: 2px !important;
+            }
+
+            .countdown-label {
+                font-size: 0.62rem !important;
+                letter-spacing: 0.05em !important;
+            }
+
+            .quote-section {
+                margin-top: 4px !important;
+            }
+
+            .quote-text {
+                font-size: 0.82rem !important;
+                line-height: 1.4 !important;
+            }
+
+            .quote-author {
+                font-size: 0.75rem !important;
+                margin-top: 6px !important;
+            }
+
+            /* Quick Links on Mobile */
+            .links {
+                grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important;
+                gap: 8px !important;
+            }
+
+            .links a {
+                padding: 10px 12px !important;
+                min-height: 42px !important;
+                font-size: 0.82rem !important;
+                border-radius: 8px !important;
+            }
+
+            /* Make quick-link menu accessible on touch devices */
+            .quick-link-menu-btn {
+                opacity: 0.75 !important;
+                width: 22px !important;
+                height: 22px !important;
+            }
+
+            .add-link-btn {
+                width: 28px !important;
+                height: 28px !important;
+                font-size: 1.1rem !important;
+            }
+
+            /* Authenticator Card on Mobile */
+            .auth-card {
+                margin-top: 12px !important;
+            }
+
+            .auth-password-form {
+                display: flex !important;
+                flex-direction: row !important;
+                gap: 8px !important;
+            }
+
+            /* Quick Capture on Mobile */
+            .capture-card {
+                margin-top: 12px !important;
+            }
+
+            .capture-textarea {
+                min-height: 85px !important;
+            }
+
+            .capture-actions {
+                display: flex !important;
+                flex-wrap: wrap !important;
+                gap: 8px !important;
+            }
+
+            /* Touch Friendly Inputs & Prevent iOS Safari Auto-Zoom */
+            input, textarea, select,
+            .auth-input, .event-input, .event-select,
+            .capture-textarea, .moon-date-picker, .f1-race-selector {
+                font-size: 16px !important;
+            }
+
+            .auth-btn, .auth-btn-secondary, .add-event-btn {
+                min-height: 38px !important;
+                padding: 8px 16px !important;
+                font-size: 0.82rem !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+            }
+
+            /* Racing Hub */
+            .f1-hub-card {
+                margin-top: 12px !important;
+            }
+
+            .standings-table {
+                font-size: 0.78rem !important;
+            }
+
+            .standings-table th,
+            .standings-table td {
+                padding: 7px 4px !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                width: calc(100% - 16px) !important;
+            }
+
+            .glass {
+                padding: 12px 12px !important;
+            }
+
+            #greeting {
+                font-size: 1.65rem !important;
+            }
+
+            .clock {
+                font-size: 1.9rem !important;
+            }
+
+            .moon-body {
+                flex-direction: column !important;
+                text-align: center !important;
+                gap: 10px !important;
+            }
+
+            .moon-info-panel {
+                align-items: center !important;
+            }
+
+            .moon-badge-row {
+                justify-content: center !important;
+            }
+
+            .countdown-card .countdown {
+                gap: 4px !important;
+            }
+
+            .countdown-unit {
+                padding: 7px 2px !important;
+            }
+
+            .countdown-value {
+                font-size: 1.55rem !important;
+            }
+
+            .countdown-label {
+                font-size: 0.56rem !important;
+            }
+
+            .links {
+                grid-template-columns: 1fr 1fr !important;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .links {
+                grid-template-columns: 1fr !important;
+            }
+
+            .clock {
+                font-size: 1.7rem !important;
+            }
+
+            .countdown-value {
+                font-size: 1.35rem !important;
+            }
+
+            .auth-password-form {
+                flex-direction: column !important;
+            }
+
+            .auth-password-form .auth-btn {
+                width: 100% !important;
+            }
+        }
+
+    
+        /* ==========================================================================
+           Enhanced Glassmorphism & Elevated UI Design
+           ========================================================================== */
+
+        .glass {
+            background: linear-gradient(135deg, rgba(14, 28, 50, 0.68) 0%, rgba(8, 18, 34, 0.78) 100%) !important;
+            border: 1px solid rgba(229, 228, 226, 0.14) !important;
+            backdrop-filter: blur(20px) saturate(145%) !important;
+            -webkit-backdrop-filter: blur(20px) saturate(145%) !important;
+            box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.42), 0 4px 12px rgba(0, 0, 0, 0.22), inset 0 1px 0 0 rgba(255, 255, 255, 0.12), inset 0 0 20px 0 rgba(155, 187, 212, 0.02) !important;
+            border-radius: 14px !important;
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s, box-shadow 0.25s, background 0.25s !important;
+        }
+
+        .glass:hover {
+            transform: translateY(-2px) !important;
+            background: linear-gradient(135deg, rgba(18, 36, 64, 0.74) 0%, rgba(10, 24, 44, 0.84) 100%) !important;
+            border-color: rgba(196, 216, 232, 0.28) !important;
+            box-shadow: 0 22px 46px -6px rgba(0, 0, 0, 0.52), 0 6px 18px rgba(0, 0, 0, 0.26), inset 0 1px 0 0 rgba(255, 255, 255, 0.20), inset 0 0 24px 0 rgba(155, 187, 212, 0.05) !important;
+        }
+
+        /* Elevated Buttons & Inputs */
+        .auth-btn, .add-event-btn, .add-link-btn {
+            background: linear-gradient(135deg, #e5e4e2 0%, #c4d8e8 100%) !important;
+            color: #050d1a !important;
+            border: 1px solid rgba(255, 255, 255, 0.3) !important;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25) !important;
+            font-weight: 600 !important;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        }
+
+        .auth-btn:hover, .add-event-btn:hover, .add-link-btn:hover {
+            background: linear-gradient(135deg, #ffffff 0%, #d5e6f5 100%) !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 6px 18px rgba(155, 187, 212, 0.35) !important;
+        }
+
+        .auth-btn-secondary {
+            background: rgba(229, 228, 226, 0.06) !important;
+            border: 1px solid rgba(229, 228, 226, 0.16) !important;
+            color: #e2e8f0 !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+            font-weight: 500 !important;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        }
+
+        .auth-btn-secondary:hover {
+            background: rgba(229, 228, 226, 0.12) !important;
+            border-color: rgba(196, 216, 232, 0.35) !important;
+            color: #ffffff !important;
+            transform: translateY(-1px) !important;
+        }
+
+        /* Countdown Tile Refinement */
+        .countdown-unit {
+            background: linear-gradient(180deg, rgba(229, 228, 226, 0.07) 0%, rgba(229, 228, 226, 0.02) 100%) !important;
+            border: 1px solid rgba(229, 228, 226, 0.14) !important;
+            border-radius: 8px !important;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 4px 10px rgba(0, 0, 0, 0.15) !important;
+        }
+
+        /* Quick Links Glass Refinement */
+        .links a {
+            background: rgba(229, 228, 226, 0.04) !important;
+            border: 1px solid rgba(229, 228, 226, 0.09) !important;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+        }
+
+        .links a:hover {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.16), rgba(168, 85, 247, 0.16)) !important;
+            border-color: rgba(155, 187, 212, 0.35) !important;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+        }
+
+        /* Soft Twinkle for Moon Stars */
+        @keyframes starGlimmer {
+            0%, 100% { opacity: 0.3; transform: scale(0.9); }
+            50% { opacity: 0.9; transform: scale(1.15); }
+        }
+
+        .moon-star:nth-child(3n) {
+            animation: starGlimmer 4s ease-in-out infinite alternate;
+        }
+        .moon-star:nth-child(5n) {
+            animation: starGlimmer 6s ease-in-out infinite alternate 1.5s;
+        }
+
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/otpauth/9.3.1/otpauth.umd.min.js"></script>
 </head>
@@ -2386,27 +2871,7 @@
 
         </div>
 
-        <!-- Day / Month / Year Progress Bars -->
-        <div class="progress-grid">
-            <div class="glass anim-enter">
-                <div class="progress-label">Day Progress</div>
-                <div class="progress-bar"><div id="dayBar" class="progress-fill" style="width: 0%;"></div></div>
-                <div id="dayValue" class="progress-value">0%</div>
-            </div>
-            <div class="glass anim-enter">
-                <div class="progress-label">Month Progress</div>
-                <div class="progress-bar"><div id="monthBar" class="progress-fill" style="width: 0%;"></div></div>
-                <div id="monthValue" class="progress-value">0%</div>
-            </div>
-            <div class="glass anim-enter">
-                <div class="progress-label">Year Progress</div>
-                <div class="progress-bar"><div id="yearBar" class="progress-fill" style="width: 0%;"></div></div>
-                <div id="yearValue" class="progress-value">0%</div>
-            </div>
-        </div>
-
-
-        <div class="bottom-grid">
+                <div class="bottom-grid">
 
             <div class="glass moon-card anim-enter" id="moonPhaseCard">
                 <div class="moon-stars" id="moonStars" aria-hidden="true"></div>
@@ -2549,6 +3014,7 @@
                 </div>
                 <div id="authActions" style="display: none; gap: 8px;">
                     <button class="auth-btn-secondary" onclick="toggleAddAccount()">+ Add</button>
+                    <button class="auth-btn-secondary" id="authRemoveToggleBtn" onclick="toggleRemoveAccount()">Remove</button>
                     <button class="auth-btn-secondary" onclick="lockAuthCard()">Lock</button>
                 </div>
             </div>
@@ -2576,6 +3042,17 @@
                         <button type="button" class="auth-btn-secondary" onclick="toggleAddAccount()">Cancel</button>
                     </div>
                     <div id="addAuthError" class="auth-error">Invalid secret.</div>
+                </div>
+
+                <div id="removeAccountForm" class="add-account-form" style="display: none; border-color: rgba(239, 68, 68, 0.3);">
+                    <div style="font-size: 0.85rem; font-weight: 600; color: #fff; margin-bottom: 4px;">Remove Authenticator</div>
+                    <div style="font-size: 0.78rem; color: #94a3b8; margin-bottom: 8px;">Choose an account to remove from your vault:</div>
+                    <select id="removeAuthSelect" class="auth-input" style="width: 100%; margin-bottom: 10px; cursor: pointer; padding: 7px 10px;"></select>
+                    <div style="display: flex; gap: 8px;">
+                        <button type="button" class="auth-btn" style="background: rgba(239, 68, 68, 0.85); color: #fff; border: 1px solid rgba(239, 68, 68, 0.5);" onclick="confirmRemoveSelectedAuth()">Remove Account</button>
+                        <button type="button" class="auth-btn-secondary" onclick="toggleRemoveAccount()">Cancel</button>
+                    </div>
+                    <div id="removeAuthError" class="auth-error" style="display: none; margin-top: 6px;">Please select an account.</div>
                 </div>
 
                 <div id="totpList" class="totp-list">
@@ -2696,13 +3173,7 @@
             newYearDays: document.getElementById("newYearDays"),
             newYearHours: document.getElementById("newYearHours"),
             newYearMinutes: document.getElementById("newYearMinutes"),
-            newYearSeconds: document.getElementById("newYearSeconds"),
-            dayBar: document.getElementById("dayBar"),
-            dayValue: document.getElementById("dayValue"),
-            monthBar: document.getElementById("monthBar"),
-            monthValue: document.getElementById("monthValue"),
-            yearBar: document.getElementById("yearBar"),
-            yearValue: document.getElementById("yearValue")
+            newYearSeconds: document.getElementById("newYearSeconds")
         };
 
         const formatters = {
@@ -2755,17 +3226,7 @@
             domCache.newYearMinutes.innerText = String(minutes).padStart(2, '0');
             domCache.newYearSeconds.innerText = String(seconds).padStart(2, '0');
 
-            // Progress bars
-            const dayPercent = Math.round(((now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()) / 86400) * 100);
-            const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-            const monthPercent = Math.round(((now.getDate() - 1 + (now.getHours() / 24)) / daysInMonth) * 100);
-            const startOfYear = new Date(now.getFullYear(), 0, 1);
-            const endOfYear = new Date(now.getFullYear() + 1, 0, 1);
-            const yearPercent = Math.round(((now - startOfYear) / (endOfYear - startOfYear)) * 100);
 
-            if (domCache.dayBar) { domCache.dayBar.style.width = dayPercent + '%'; domCache.dayValue.innerText = dayPercent + '%'; }
-            if (domCache.monthBar) { domCache.monthBar.style.width = monthPercent + '%'; domCache.monthValue.innerText = monthPercent + '%'; }
-            if (domCache.yearBar) { domCache.yearBar.style.width = yearPercent + '%'; domCache.yearValue.innerText = yearPercent + '%'; }
 
             if (typeof updateF1LiveStatus === 'function') {
                 updateF1LiveStatus(now);
@@ -4144,6 +4605,8 @@
             // Clear DOM
             document.getElementById('totpList').innerHTML = "";
             document.getElementById('addAccountForm').classList.remove('active');
+            const removeForm = document.getElementById('removeAccountForm');
+            if (removeForm) removeForm.style.display = 'none';
 
             // Show locked view
             document.getElementById('authUnlockedView').classList.remove('active');
@@ -4172,12 +4635,93 @@
         document.getElementById('authCard').addEventListener('keydown', resetAuthInactivityTimer);
 
         function toggleAddAccount() {
-            const form = document.getElementById('addAccountForm');
-            form.classList.toggle('active');
+            const addForm = document.getElementById('addAccountForm');
+            const removeForm = document.getElementById('removeAccountForm');
+            if (removeForm) removeForm.style.display = 'none';
+
+            addForm.classList.toggle('active');
             document.getElementById('addAuthError').style.display = 'none';
             document.getElementById('newAuthName').value = "";
             document.getElementById('newAuthSecret').value = "";
             resetAuthInactivityTimer();
+        }
+
+        function toggleRemoveAccount() {
+            const addForm = document.getElementById('addAccountForm');
+            const removeForm = document.getElementById('removeAccountForm');
+            if (addForm) addForm.classList.remove('active');
+
+            if (authAccounts.length === 0) {
+                alert("No accounts available to remove.");
+                if (removeForm) removeForm.style.display = 'none';
+                return;
+            }
+
+            const isShown = removeForm.style.display === 'flex' || removeForm.style.display === 'block';
+            if (isShown) {
+                removeForm.style.display = 'none';
+            } else {
+                const select = document.getElementById('removeAuthSelect');
+                select.innerHTML = '<option value="">-- Choose account to remove --</option>' +
+                    authAccounts.map((acc, idx) => `<option value="${idx}">${escapeHTML(acc.name)}</option>`).join('');
+                document.getElementById('removeAuthError').style.display = 'none';
+                removeForm.style.display = 'flex';
+                removeForm.style.flexDirection = 'column';
+            }
+            resetAuthInactivityTimer();
+        }
+
+        async function confirmRemoveSelectedAuth() {
+            resetAuthInactivityTimer();
+            const select = document.getElementById('removeAuthSelect');
+            const errorDiv = document.getElementById('removeAuthError');
+            const selectedVal = select.value;
+
+            if (selectedVal === "" || selectedVal === null || selectedVal === undefined) {
+                errorDiv.innerText = "Please select an account to remove.";
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            const index = parseInt(selectedVal, 10);
+            if (isNaN(index) || index < 0 || index >= authAccounts.length) {
+                errorDiv.innerText = "Invalid selection.";
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            const accName = authAccounts[index].name;
+            if (!confirm(`Are you sure you want to remove the authenticator for "${accName}"?`)) {
+                return;
+            }
+
+            try {
+                let allData = [];
+                if (encryptedAccounts.length > 0) {
+                    const decryptedAccountsStr = await decryptData(encryptedAccounts[0].data, currentAuthPassword);
+                    allData = JSON.parse(decryptedAccountsStr);
+                }
+
+                allData.splice(index, 1);
+
+                if (allData.length > 0) {
+                    const encryptedData = await encryptData(JSON.stringify(allData), currentAuthPassword);
+                    encryptedAccounts = [{ data: encryptedData }];
+                    localStorage.setItem('auth_accounts', JSON.stringify(encryptedAccounts));
+                    authAccounts = allData.map(acc => ({ name: acc.name }));
+                } else {
+                    encryptedAccounts = [];
+                    localStorage.removeItem('auth_accounts');
+                    authAccounts = [];
+                }
+
+                document.getElementById('removeAccountForm').style.display = 'none';
+                stopActiveTotp();
+                renderTotpList();
+            } catch (err) {
+                console.error("Failed to delete authenticator account:", err);
+                alert("Failed to remove authenticator account.");
+            }
         }
 
         async function addAuthAccount() {
@@ -4368,12 +4912,6 @@
                         <div class="totp-item" style="border-color: rgba(168, 85, 247, 0.5); background: rgba(168, 85, 247, 0.05);" onclick="toggleTotpAccount(${index})">
                             <div class="totp-item-header">
                                 <div class="totp-name" style="color: #fff; cursor: pointer; margin-bottom: 0;">${escapeHTML(acc.name)}</div>
-                                <button type="button" class="totp-delete-btn" title="Remove authenticator" onclick="event.stopPropagation(); deleteAuthAccount(${index});">
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <polyline points="3 6 5 6 21 6"></polyline>
-                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                    </svg>
-                                </button>
                             </div>
                             <div class="totp-code" id="totp-code-${index}" data-initialized="false" onclick="copyTotp(this); event.stopPropagation();" style="margin-top: 8px;">
                                 <!-- Generated by startActiveTotp -->
@@ -4385,12 +4923,6 @@
                         <div class="totp-item" onclick="toggleTotpAccount(${index})">
                             <div class="totp-item-header">
                                 <div class="totp-name" style="margin-bottom: 0;">${escapeHTML(acc.name)}</div>
-                                <button type="button" class="totp-delete-btn" title="Remove authenticator" onclick="event.stopPropagation(); deleteAuthAccount(${index});">
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <polyline points="3 6 5 6 21 6"></polyline>
-                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                    </svg>
-                                </button>
                             </div>
                         </div>
                     `;
@@ -4802,22 +5334,22 @@
                     return (seed - 1) / 2147483646;
                 };
 
-                for (let i = 0; i < 62; i++) {
+                for (let i = 0; i < 96; i++) {
                     const star = document.createElement('span');
                     const variation = random();
-                    const size = variation < 0.72
-                        ? 0.45 + random() * 0.42
-                        : variation < 0.94
-                            ? 0.9 + random() * 0.45
-                            : 1.4 + random() * 0.45;
+                    const size = variation < 0.65
+                        ? 0.40 + random() * 0.40
+                        : variation < 0.90
+                            ? 0.85 + random() * 0.42
+                            : 1.35 + random() * 0.45;
 
                     star.className = 'moon-star';
-                    star.style.left = `${3 + random() * 94}%`;
-                    star.style.top = `${4 + random() * 92}%`;
+                    star.style.left = `${2 + random() * 96}%`;
+                    star.style.top = `${3 + random() * 94}%`;
                     star.style.width = `${size}px`;
                     star.style.height = `${size}px`;
-                    star.style.opacity = `${0.24 + random() * 0.6}`;
-                    star.style.backgroundColor = variation > 0.84 ? '#9bbbd4' : '#e5e4e2';
+                    star.style.opacity = `${0.22 + random() * 0.65}`;
+                    star.style.backgroundColor = variation > 0.85 ? '#9bbbd4' : (variation < 0.20 ? '#ffdcb4' : '#e5e4e2');
                     dom.starField.appendChild(star);
                 }
             }
