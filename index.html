@@ -2835,6 +2835,9 @@
 
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/otpauth/9.3.1/otpauth.umd.min.js"></script>
+    <!-- Firebase SDKs for Cloud Vault Sync (Compat for standalone HTML) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 </head>
 
 <body>
@@ -3009,12 +3012,18 @@
         <div class="glass auth-card anim-enter" id="authCard">
             <div class="auth-header">
                 <div class="card-title"
-                    style="margin-bottom: 0; font-size: 1.1rem; letter-spacing: 1.5px; display: flex; align-items: center; gap: 8px;">
+                    style="margin-bottom: 0; font-size: 1.1rem; letter-spacing: 1.5px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                     AUTHENTICATOR
+                    <span id="authCloudBadge" style="font-size: 0.65rem; font-weight: 500; letter-spacing: 0.5px; padding: 2px 8px; border-radius: 999px; background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.25); color: #93c5fd; display: inline-flex; align-items: center; gap: 5px; text-transform: uppercase;">
+                        <span id="authCloudDot" style="width: 6px; height: 6px; border-radius: 50%; background: #60a5fa; transition: background 0.3s ease;"></span>
+                        <span id="authCloudText">Cloud Ready</span>
+                    </span>
                 </div>
-                <div id="authActions" style="display: none; gap: 8px;">
+                <div id="authActions" style="display: none; gap: 8px; flex-wrap: wrap;">
                     <button class="auth-btn-secondary" onclick="toggleAddAccount()">+ Add</button>
                     <button class="auth-btn-secondary" id="authRemoveToggleBtn" onclick="toggleRemoveAccount()">Remove</button>
+                    <button class="auth-btn-secondary" id="authShowKeysBtn" onclick="toggleShowKeys()">Show Keys</button>
+                    <button class="auth-btn-secondary" id="authSyncBtn" onclick="manualSyncVault()" title="Sync with Firestore Cloud">Sync ☁️</button>
                     <button class="auth-btn-secondary" onclick="lockAuthCard()">Lock</button>
                 </div>
             </div>
@@ -3053,6 +3062,19 @@
                         <button type="button" class="auth-btn-secondary" onclick="toggleRemoveAccount()">Cancel</button>
                     </div>
                     <div id="removeAuthError" class="auth-error" style="display: none; margin-top: 6px;">Please select an account.</div>
+                </div>
+
+                <div id="showKeysPanel" class="add-account-form" style="display: none; border-color: rgba(99, 102, 241, 0.35); max-height: 290px; overflow-y: auto;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <div style="font-size: 0.85rem; font-weight: 600; color: #fff;">Vault Secret Keys</div>
+                        <div style="display: flex; gap: 6px;">
+                            <button type="button" class="auth-btn-secondary" id="copyAllKeysBtn" onclick="copyAllSecretKeys()" style="padding: 3px 9px; font-size: 0.72rem;">Copy All</button>
+                            <button type="button" class="auth-btn-secondary" onclick="toggleShowKeys()" style="padding: 3px 9px; font-size: 0.72rem;">Close</button>
+                        </div>
+                    </div>
+                    <div id="showKeysList" style="display: flex; flex-direction: column; gap: 8px;">
+                        <!-- Decrypted secrets injected here -->
+                    </div>
                 </div>
 
                 <div id="totpList" class="totp-list">
@@ -4471,7 +4493,29 @@
 
 
 
-        // --- Authenticator Card Logic ---
+        // --- Authenticator Card Logic with Firebase Firestore Cloud Sync ---
+
+        // Firebase Web App Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCErmc2VSIv3r5iBq1s_csVCBL3okMybC4",
+            authDomain: "cave-834a9.firebaseapp.com",
+            projectId: "cave-834a9",
+            storageBucket: "cave-834a9.firebasestorage.app",
+            messagingSenderId: "899815065607",
+            appId: "1:899815065607:web:579165244a41b5866382a2"
+        };
+
+        let firestoreDb = null;
+        try {
+            if (typeof firebase !== 'undefined' && firebase.initializeApp) {
+                if (!firebase.apps || !firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                firestoreDb = firebase.firestore();
+            }
+        } catch (fbErr) {
+            console.warn("Firebase initialization warning:", fbErr);
+        }
 
         let authAccounts = []; // Unencrypted in-memory only when unlocked
         let currentAuthPassword = "";
@@ -4483,6 +4527,181 @@
 
         // Load encrypted accounts from localStorage (or init empty)
         let encryptedAccounts = readStoredArray('auth_accounts');
+
+        function updateCloudSyncBadge(status, text) {
+            const badge = document.getElementById('authCloudBadge');
+            const dot = document.getElementById('authCloudDot');
+            const label = document.getElementById('authCloudText');
+            if (!badge || !dot || !label) return;
+
+            if (status === 'synced') {
+                dot.style.background = '#10b981';
+                badge.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+                badge.style.background = 'rgba(16, 185, 129, 0.12)';
+                badge.style.color = '#6ee7b7';
+                label.innerText = text || 'Synced';
+            } else if (status === 'syncing') {
+                dot.style.background = '#38bdf8';
+                badge.style.borderColor = 'rgba(56, 189, 248, 0.3)';
+                badge.style.background = 'rgba(56, 189, 248, 0.12)';
+                badge.style.color = '#7dd3fc';
+                label.innerText = text || 'Syncing...';
+            } else if (status === 'offline' || status === 'local') {
+                dot.style.background = '#94a3b8';
+                badge.style.borderColor = 'rgba(148, 163, 184, 0.3)';
+                badge.style.background = 'rgba(148, 163, 184, 0.12)';
+                badge.style.color = '#cbd5e1';
+                label.innerText = text || 'Local Only';
+            } else if (status === 'error') {
+                dot.style.background = '#f59e0b';
+                badge.style.borderColor = 'rgba(245, 158, 11, 0.3)';
+                badge.style.background = 'rgba(245, 158, 11, 0.12)';
+                badge.style.color = '#fcd34d';
+                label.innerText = text || 'Cloud Offline';
+            }
+        }
+
+        async function syncVaultToCloud(encryptedBlob) {
+            if (!firestoreDb) {
+                updateCloudSyncBadge('offline', 'Local Only');
+                return;
+            }
+            try {
+                updateCloudSyncBadge('syncing', 'Saving to Cloud...');
+                const timestamp = Date.now();
+                localStorage.setItem('auth_accounts_updated_at', timestamp.toString());
+                await firestoreDb.collection('vault').doc('authenticator').set({
+                    encryptedBlob: encryptedBlob || "",
+                    updatedAt: timestamp,
+                    version: 1
+                }, { merge: true });
+                updateCloudSyncBadge('synced', 'Synced');
+            } catch (err) {
+                console.warn("Failed to sync vault to Firestore:", err);
+                updateCloudSyncBadge('error', 'Sync Failed');
+            }
+        }
+
+        async function syncVaultFromCloud(silent = false) {
+            if (!firestoreDb) {
+                updateCloudSyncBadge('offline', 'Local Only');
+                return false;
+            }
+            try {
+                if (!silent) updateCloudSyncBadge('syncing', 'Checking Cloud...');
+                const docSnap = await firestoreDb.collection('vault').doc('authenticator').get();
+                if (docSnap.exists) {
+                    const data = docSnap.data();
+                    const cloudUpdatedAt = data.updatedAt || 0;
+                    const localUpdatedAt = parseInt(localStorage.getItem('auth_accounts_updated_at') || '0', 10);
+
+                    if (cloudUpdatedAt > localUpdatedAt && data.encryptedBlob !== undefined) {
+                        if (data.encryptedBlob) {
+                            encryptedAccounts = [{ data: data.encryptedBlob }];
+                            localStorage.setItem('auth_accounts', JSON.stringify(encryptedAccounts));
+                        } else {
+                            encryptedAccounts = [];
+                            localStorage.removeItem('auth_accounts');
+                        }
+                        localStorage.setItem('auth_accounts_updated_at', cloudUpdatedAt.toString());
+                        updateCloudSyncBadge('synced', 'Synced');
+
+                        // If already unlocked, re-decrypt and update in-memory accounts
+                        if (currentAuthPassword) {
+                            try {
+                                if (encryptedAccounts.length > 0) {
+                                    const decrypted = await decryptData(encryptedAccounts[0].data, currentAuthPassword);
+                                    const allData = JSON.parse(decrypted);
+                                    authAccounts = allData.map(acc => ({ name: acc.name }));
+                                } else {
+                                    authAccounts = [];
+                                }
+                                stopActiveTotp();
+                                renderTotpList();
+                            } catch (decErr) {
+                                console.warn("Could not re-decrypt with current password:", decErr);
+                            }
+                        }
+                        return true;
+                    } else if (localUpdatedAt > cloudUpdatedAt && encryptedAccounts.length > 0) {
+                        // Local is newer, upload to cloud
+                        await syncVaultToCloud(encryptedAccounts[0].data);
+                        return true;
+                    } else {
+                        updateCloudSyncBadge('synced', 'Synced');
+                        return false;
+                    }
+                } else {
+                    if (encryptedAccounts.length > 0) {
+                        await syncVaultToCloud(encryptedAccounts[0].data);
+                    } else {
+                        updateCloudSyncBadge('synced', 'Cloud Ready');
+                    }
+                    return false;
+                }
+            } catch (err) {
+                console.warn("Firestore sync error:", err);
+                updateCloudSyncBadge('error', 'Cloud Offline');
+                return false;
+            }
+        }
+
+        function setupCloudVaultListener() {
+            if (!firestoreDb) return;
+            try {
+                firestoreDb.collection('vault').doc('authenticator').onSnapshot((docSnap) => {
+                    if (!docSnap || !docSnap.exists) return;
+                    const data = docSnap.data();
+                    const cloudUpdatedAt = data.updatedAt || 0;
+                    const localUpdatedAt = parseInt(localStorage.getItem('auth_accounts_updated_at') || '0', 10);
+
+                    if (cloudUpdatedAt > localUpdatedAt && data.encryptedBlob !== undefined) {
+                        if (data.encryptedBlob) {
+                            encryptedAccounts = [{ data: data.encryptedBlob }];
+                            localStorage.setItem('auth_accounts', JSON.stringify(encryptedAccounts));
+                        } else {
+                            encryptedAccounts = [];
+                            localStorage.removeItem('auth_accounts');
+                        }
+                        localStorage.setItem('auth_accounts_updated_at', cloudUpdatedAt.toString());
+                        updateCloudSyncBadge('synced', 'Synced');
+
+                        if (currentAuthPassword) {
+                            (async () => {
+                                try {
+                                    if (encryptedAccounts.length > 0) {
+                                        const decrypted = await decryptData(encryptedAccounts[0].data, currentAuthPassword);
+                                        const allData = JSON.parse(decrypted);
+                                        authAccounts = allData.map(acc => ({ name: acc.name }));
+                                    } else {
+                                        authAccounts = [];
+                                    }
+                                    stopActiveTotp();
+                                    renderTotpList();
+                                } catch (e) {}
+                            })();
+                        }
+                    } else {
+                        updateCloudSyncBadge('synced', 'Synced');
+                    }
+                }, (err) => {
+                    console.warn("Firestore listener warning:", err);
+                    updateCloudSyncBadge('error', 'Cloud Offline');
+                });
+            } catch (err) {
+                console.warn("Failed to initialize cloud vault listener:", err);
+            }
+        }
+
+        async function manualSyncVault() {
+            const btn = document.getElementById('authSyncBtn');
+            if (btn) btn.innerText = "Syncing...";
+            await syncVaultFromCloud(false);
+            if (btn) {
+                btn.innerText = "Synced! ☁️";
+                setTimeout(() => { btn.innerText = "Sync ☁️"; }, 1500);
+            }
+        }
 
         // Cryptography Helpers using Web Crypto API
         async function getDerivedKey(password, salt) {
@@ -4564,6 +4783,16 @@
 
             if (!password) return;
 
+            // Attempt swift cloud fetch in background/timeout before decrypting
+            try {
+                await Promise.race([
+                    syncVaultFromCloud(true),
+                    new Promise(res => setTimeout(res, 800))
+                ]);
+            } catch (syncErr) {
+                // Fall back transparently to local vault
+            }
+
             try {
                 if (encryptedAccounts.length > 0) {
                     const decryptedAccountsStr = await decryptData(encryptedAccounts[0].data, password);
@@ -4607,6 +4836,10 @@
             document.getElementById('addAccountForm').classList.remove('active');
             const removeForm = document.getElementById('removeAccountForm');
             if (removeForm) removeForm.style.display = 'none';
+            const keysPanel = document.getElementById('showKeysPanel');
+            if (keysPanel) { keysPanel.style.display = 'none'; document.getElementById('showKeysList').innerHTML = ""; }
+            const showBtn = document.getElementById('authShowKeysBtn');
+            if (showBtn) showBtn.innerText = "Show Keys";
 
             // Show locked view
             document.getElementById('authUnlockedView').classList.remove('active');
@@ -4637,7 +4870,12 @@
         function toggleAddAccount() {
             const addForm = document.getElementById('addAccountForm');
             const removeForm = document.getElementById('removeAccountForm');
+            const keysPanel = document.getElementById('showKeysPanel');
+            const showBtn = document.getElementById('authShowKeysBtn');
+
             if (removeForm) removeForm.style.display = 'none';
+            if (keysPanel) { keysPanel.style.display = 'none'; document.getElementById('showKeysList').innerHTML = ""; }
+            if (showBtn) showBtn.innerText = "Show Keys";
 
             addForm.classList.toggle('active');
             document.getElementById('addAuthError').style.display = 'none';
@@ -4649,7 +4887,12 @@
         function toggleRemoveAccount() {
             const addForm = document.getElementById('addAccountForm');
             const removeForm = document.getElementById('removeAccountForm');
+            const keysPanel = document.getElementById('showKeysPanel');
+            const showBtn = document.getElementById('authShowKeysBtn');
+
             if (addForm) addForm.classList.remove('active');
+            if (keysPanel) { keysPanel.style.display = 'none'; document.getElementById('showKeysList').innerHTML = ""; }
+            if (showBtn) showBtn.innerText = "Show Keys";
 
             if (authAccounts.length === 0) {
                 alert("No accounts available to remove.");
@@ -4669,6 +4912,96 @@
                 removeForm.style.flexDirection = 'column';
             }
             resetAuthInactivityTimer();
+        }
+
+        async function toggleShowKeys() {
+            const addForm = document.getElementById('addAccountForm');
+            const removeForm = document.getElementById('removeAccountForm');
+            const keysPanel = document.getElementById('showKeysPanel');
+            const showBtn = document.getElementById('authShowKeysBtn');
+
+            if (addForm) addForm.classList.remove('active');
+            if (removeForm) removeForm.style.display = 'none';
+
+            const isShown = keysPanel.style.display === 'flex' || keysPanel.style.display === 'block';
+            if (isShown) {
+                keysPanel.style.display = 'none';
+                document.getElementById('showKeysList').innerHTML = "";
+                if (showBtn) showBtn.innerText = "Show Keys";
+                return;
+            }
+
+            if (authAccounts.length === 0) {
+                alert("No accounts in your vault yet.");
+                return;
+            }
+
+            try {
+                let allData = [];
+                if (encryptedAccounts.length > 0) {
+                    const decrypted = await decryptData(encryptedAccounts[0].data, currentAuthPassword);
+                    allData = JSON.parse(decrypted);
+                }
+
+                const list = document.getElementById('showKeysList');
+                list.innerHTML = allData.map((acc, i) => `
+                    <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(229, 228, 226, 0.1); border-radius: 6px; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                        <div style="min-width: 0; flex: 1;">
+                            <div style="font-size: 0.8rem; font-weight: 600; color: #fff; margin-bottom: 2px;">${escapeHTML(acc.name)}</div>
+                            <div style="font-family: monospace; font-size: 0.75rem; color: #a5b4fc; letter-spacing: 0.5px; word-break: break-all; user-select: all;">${escapeHTML(acc.secret)}</div>
+                        </div>
+                        <button type="button" class="auth-btn-secondary" style="padding: 4px 9px; font-size: 0.72rem; flex-shrink: 0;" onclick="copySingleSecret(this, '${escapeHTML(acc.secret)}')">Copy</button>
+                    </div>
+                `).join('');
+
+                keysPanel.style.display = 'flex';
+                keysPanel.style.flexDirection = 'column';
+                if (showBtn) showBtn.innerText = "Hide Keys";
+                resetAuthInactivityTimer();
+            } catch (err) {
+                console.error("Failed to decrypt secret keys:", err);
+                alert("Failed to decrypt secret keys.");
+            }
+        }
+
+        function copySingleSecret(btn, secret) {
+            resetAuthInactivityTimer();
+            navigator.clipboard.writeText(secret).then(() => {
+                const orig = btn.innerText;
+                btn.innerText = "Copied!";
+                btn.style.color = "#10b981";
+                setTimeout(() => {
+                    btn.innerText = orig;
+                    btn.style.color = "";
+                }, 1500);
+            }).catch(() => {
+                prompt("Copy secret manually:", secret);
+            });
+        }
+
+        async function copyAllSecretKeys() {
+            resetAuthInactivityTimer();
+            try {
+                if (encryptedAccounts.length === 0) return;
+                const decrypted = await decryptData(encryptedAccounts[0].data, currentAuthPassword);
+                const allData = JSON.parse(decrypted);
+                const formatted = allData.map(a => `${a.name}: ${a.secret}`).join('\n');
+
+                const btn = document.getElementById('copyAllKeysBtn');
+                navigator.clipboard.writeText(formatted).then(() => {
+                    const orig = btn.innerText;
+                    btn.innerText = "All Copied!";
+                    btn.style.color = "#10b981";
+                    setTimeout(() => {
+                        btn.innerText = orig;
+                        btn.style.color = "";
+                    }, 1500);
+                }).catch(() => {
+                    prompt("Copy all secrets:", formatted);
+                });
+            } catch (e) {
+                console.error(e);
+            }
         }
 
         async function confirmRemoveSelectedAuth() {
@@ -4709,10 +5042,12 @@
                     encryptedAccounts = [{ data: encryptedData }];
                     localStorage.setItem('auth_accounts', JSON.stringify(encryptedAccounts));
                     authAccounts = allData.map(acc => ({ name: acc.name }));
+                    syncVaultToCloud(encryptedData);
                 } else {
                     encryptedAccounts = [];
                     localStorage.removeItem('auth_accounts');
                     authAccounts = [];
+                    syncVaultToCloud("");
                 }
 
                 document.getElementById('removeAccountForm').style.display = 'none';
@@ -4768,6 +5103,7 @@
                 const encryptedData = await encryptData(JSON.stringify(allData), currentAuthPassword);
                 encryptedAccounts = [{ data: encryptedData }];
                 localStorage.setItem('auth_accounts', JSON.stringify(encryptedAccounts));
+                syncVaultToCloud(encryptedData);
 
                 toggleAddAccount();
                 stopActiveTotp();
@@ -4801,10 +5137,12 @@
                     encryptedAccounts = [{ data: encryptedData }];
                     localStorage.setItem('auth_accounts', JSON.stringify(encryptedAccounts));
                     authAccounts = allData.map(acc => ({ name: acc.name }));
+                    syncVaultToCloud(encryptedData);
                 } else {
                     encryptedAccounts = [];
                     localStorage.removeItem('auth_accounts');
                     authAccounts = [];
+                    syncVaultToCloud("");
                 }
 
                 stopActiveTotp();
@@ -5581,6 +5919,14 @@
         })();
 
         MoonPhaseWidget.init();
+
+        // Initialize Authenticator Cloud Vault listener and initial sync
+        try {
+            setupCloudVaultListener();
+            syncVaultFromCloud(true);
+        } catch (vaultInitErr) {
+            console.warn("Cloud vault initialization error:", vaultInitErr);
+        }
 
     </script>
 
