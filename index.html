@@ -2330,12 +2330,21 @@
             border-left: 1px solid rgba(229, 228, 226, 0.14) !important;
         }
 
-        .clock-flag {
-            font-size: 1.2rem;
+        .clock-flag,
+        .clock-code {
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            color: #94a3b8;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(229, 228, 226, 0.12);
+            border-radius: 4px;
+            padding: 1px 5px;
             margin-right: 6px;
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            line-height: 1.2;
             vertical-align: middle;
-            filter: saturate(0.85);
         }
 
         .clock-title { display: flex; align-items: center; }
@@ -2855,19 +2864,19 @@
         <div class="clock-grid">
 
             <div class="glass clock-card-ny anim-enter">
-                <div class="clock-title"><span class="clock-flag">🇺🇸</span> New York, USA (EDT)</div>
+                <div class="clock-title"><span class="clock-code">US</span> New York, USA (EDT)</div>
                 <div id="nyClock" class="clock"></div>
                 <div id="nyDate" class="date"></div>
             </div>
 
             <div class="glass clock-card-india anim-enter">
-                <div class="clock-title"><span class="clock-flag">🇮🇳</span> Gurgaon, India (IST)</div>
+                <div class="clock-title"><span class="clock-code">IN</span> Gurgaon, India (IST)</div>
                 <div id="indiaClock" class="clock"></div>
                 <div id="indiaDate" class="date"></div>
             </div>
 
             <div class="glass clock-card-tokyo anim-enter">
-                <div class="clock-title"><span class="clock-flag">🇯🇵</span> Tokyo, Japan (JST)</div>
+                <div class="clock-title"><span class="clock-code">JP</span> Tokyo, Japan (JST)</div>
                 <div id="tokyoClock" class="clock"></div>
                 <div id="tokyoDate" class="date"></div>
             </div>
