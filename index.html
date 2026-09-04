@@ -2982,8 +2982,12 @@
 
         <div class="glass links-card anim-enter">
             <div class="links-card-header">
-                <div class="card-title" style="font-size: 1.1rem; letter-spacing: 1.5px;">
+                <div class="card-title" style="font-size: 1.1rem; letter-spacing: 1.5px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                     QUICK LINKS
+                    <span id="quickLinksCloudBadge" style="font-size: 0.65rem; font-weight: 500; letter-spacing: 0.5px; padding: 2px 8px; border-radius: 999px; background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.25); color: #93c5fd; display: inline-flex; align-items: center; gap: 5px; text-transform: uppercase;">
+                        <span id="quickLinksCloudDot" style="width: 6px; height: 6px; border-radius: 50%; background: #60a5fa; transition: background 0.3s ease;"></span>
+                        <span id="quickLinksCloudText">Cloud Ready</span>
+                    </span>
                 </div>
                 <button class="add-link-btn" onclick="toggleAddQuickLinkForm()" title="Add Quick Link">+</button>
             </div>
@@ -3090,9 +3094,14 @@
         </div>
 
         <div class="glass capture-card anim-enter" id="quickCaptureCard">
-            <div style="display: flex; align-items: center; margin-bottom: 5px;">
-                <div class="card-title" style="margin-bottom: 0; font-size: 1.1rem; letter-spacing: 1.5px;">QUICK
-                    CAPTURE</div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; flex-wrap: wrap; gap: 8px;">
+                <div class="card-title" style="margin-bottom: 0; font-size: 1.1rem; letter-spacing: 1.5px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    QUICK CAPTURE
+                    <span id="quickCaptureCloudBadge" style="font-size: 0.65rem; font-weight: 500; letter-spacing: 0.5px; padding: 2px 8px; border-radius: 999px; background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.25); color: #93c5fd; display: inline-flex; align-items: center; gap: 5px; text-transform: uppercase;">
+                        <span id="quickCaptureCloudDot" style="width: 6px; height: 6px; border-radius: 50%; background: #60a5fa; transition: background 0.3s ease;"></span>
+                        <span id="quickCaptureCloudText">Cloud Ready</span>
+                    </span>
+                </div>
             </div>
 
             <textarea id="captureInput" class="capture-textarea"
@@ -3169,6 +3178,28 @@
 
 
     <script>
+
+        // --- Firebase & Firestore Global Configuration ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCErmc2VSIv3r5iBq1s_csVCBL3okMybC4",
+            authDomain: "cave-834a9.firebaseapp.com",
+            projectId: "cave-834a9",
+            storageBucket: "cave-834a9.firebasestorage.app",
+            messagingSenderId: "899815065607",
+            appId: "1:899815065607:web:579165244a41b5866382a2"
+        };
+
+        let firestoreDb = null;
+        try {
+            if (typeof firebase !== 'undefined' && firebase.initializeApp) {
+                if (!firebase.apps || !firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                firestoreDb = firebase.firestore();
+            }
+        } catch (fbErr) {
+            console.warn("Firebase initialization warning:", fbErr);
+        }
 
         // Ultra-fast scroll performance optimizer (disables hover recalculations during active scroll)
         let isScrollingTimer;
@@ -4259,8 +4290,128 @@
             return defaultQuickLinks;
         }
 
+        function updateQuickLinksBadge(status, text) {
+            const badge = document.getElementById('quickLinksCloudBadge');
+            const dot = document.getElementById('quickLinksCloudDot');
+            const label = document.getElementById('quickLinksCloudText');
+            if (!badge || !dot || !label) return;
+
+            if (status === 'synced') {
+                dot.style.background = '#10b981';
+                badge.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+                badge.style.background = 'rgba(16, 185, 129, 0.12)';
+                badge.style.color = '#6ee7b7';
+                label.innerText = text || 'Synced';
+            } else if (status === 'syncing') {
+                dot.style.background = '#38bdf8';
+                badge.style.borderColor = 'rgba(56, 189, 248, 0.3)';
+                badge.style.background = 'rgba(56, 189, 248, 0.12)';
+                badge.style.color = '#7dd3fc';
+                label.innerText = text || 'Syncing...';
+            } else if (status === 'offline' || status === 'local') {
+                dot.style.background = '#94a3b8';
+                badge.style.borderColor = 'rgba(148, 163, 184, 0.3)';
+                badge.style.background = 'rgba(148, 163, 184, 0.12)';
+                badge.style.color = '#cbd5e1';
+                label.innerText = text || 'Local Only';
+            } else if (status === 'error') {
+                dot.style.background = '#f59e0b';
+                badge.style.borderColor = 'rgba(245, 158, 11, 0.3)';
+                badge.style.background = 'rgba(245, 158, 11, 0.12)';
+                badge.style.color = '#fcd34d';
+                label.innerText = text || 'Cloud Offline';
+            }
+        }
+
+        async function syncQuickLinksToCloud(links) {
+            if (!firestoreDb) {
+                updateQuickLinksBadge('offline', 'Local Only');
+                return;
+            }
+            try {
+                updateQuickLinksBadge('syncing', 'Saving to Cloud...');
+                const timestamp = Date.now();
+                localStorage.setItem('userQuickLinks_updated_at', timestamp.toString());
+                await firestoreDb.collection('vault').doc('quick_links').set({
+                    links: links || [],
+                    updatedAt: timestamp,
+                    version: 1
+                }, { merge: true });
+                updateQuickLinksBadge('synced', 'Synced');
+            } catch (err) {
+                console.warn("Failed to sync quick links to Firestore:", err);
+                updateQuickLinksBadge('error', 'Sync Failed');
+            }
+        }
+
+        async function syncQuickLinksFromCloud(silent = false) {
+            if (!firestoreDb) {
+                updateQuickLinksBadge('offline', 'Local Only');
+                return false;
+            }
+            try {
+                if (!silent) updateQuickLinksBadge('syncing', 'Checking Cloud...');
+                const docSnap = await firestoreDb.collection('vault').doc('quick_links').get();
+                if (docSnap.exists) {
+                    const data = docSnap.data();
+                    const cloudUpdatedAt = data.updatedAt || 0;
+                    const localUpdatedAt = parseInt(localStorage.getItem('userQuickLinks_updated_at') || '0', 10);
+
+                    if (cloudUpdatedAt > localUpdatedAt && Array.isArray(data.links)) {
+                        localStorage.setItem('userQuickLinks', JSON.stringify(data.links));
+                        localStorage.setItem('userQuickLinks_updated_at', cloudUpdatedAt.toString());
+                        renderQuickLinks();
+                        updateQuickLinksBadge('synced', 'Synced');
+                        return true;
+                    } else if (localUpdatedAt > cloudUpdatedAt) {
+                        const localLinks = loadQuickLinks();
+                        await syncQuickLinksToCloud(localLinks);
+                        return true;
+                    } else {
+                        updateQuickLinksBadge('synced', 'Synced');
+                        return false;
+                    }
+                } else {
+                    const currentLinks = loadQuickLinks();
+                    await syncQuickLinksToCloud(currentLinks);
+                    return false;
+                }
+            } catch (err) {
+                console.warn("Quick links cloud sync error:", err);
+                updateQuickLinksBadge('error', 'Cloud Offline');
+                return false;
+            }
+        }
+
+        function setupQuickLinksCloudListener() {
+            if (!firestoreDb) return;
+            try {
+                firestoreDb.collection('vault').doc('quick_links').onSnapshot((docSnap) => {
+                    if (!docSnap || !docSnap.exists) return;
+                    const data = docSnap.data();
+                    const cloudUpdatedAt = data.updatedAt || 0;
+                    const localUpdatedAt = parseInt(localStorage.getItem('userQuickLinks_updated_at') || '0', 10);
+
+                    if (cloudUpdatedAt > localUpdatedAt && Array.isArray(data.links)) {
+                        localStorage.setItem('userQuickLinks', JSON.stringify(data.links));
+                        localStorage.setItem('userQuickLinks_updated_at', cloudUpdatedAt.toString());
+                        renderQuickLinks();
+                        updateQuickLinksBadge('synced', 'Synced');
+                    } else {
+                        updateQuickLinksBadge('synced', 'Synced');
+                    }
+                }, (err) => {
+                    console.warn("Quick links listener warning:", err);
+                    updateQuickLinksBadge('error', 'Cloud Offline');
+                });
+            } catch (e) {
+                console.warn("Failed to attach quick links cloud listener:", e);
+            }
+        }
+
         function saveQuickLinks(links) {
             localStorage.setItem("userQuickLinks", JSON.stringify(links));
+            syncQuickLinksToCloud(links);
         }
 
         function renderQuickLinks() {
@@ -4494,28 +4645,6 @@
 
 
         // --- Authenticator Card Logic with Firebase Firestore Cloud Sync ---
-
-        // Firebase Web App Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyCErmc2VSIv3r5iBq1s_csVCBL3okMybC4",
-            authDomain: "cave-834a9.firebaseapp.com",
-            projectId: "cave-834a9",
-            storageBucket: "cave-834a9.firebasestorage.app",
-            messagingSenderId: "899815065607",
-            appId: "1:899815065607:web:579165244a41b5866382a2"
-        };
-
-        let firestoreDb = null;
-        try {
-            if (typeof firebase !== 'undefined' && firebase.initializeApp) {
-                if (!firebase.apps || !firebase.apps.length) {
-                    firebase.initializeApp(firebaseConfig);
-                }
-                firestoreDb = firebase.firestore();
-            }
-        } catch (fbErr) {
-            console.warn("Firebase initialization warning:", fbErr);
-        }
 
         let authAccounts = []; // Unencrypted in-memory only when unlocked
         let currentAuthPassword = "";
@@ -5310,12 +5439,135 @@
             }
         });
 
-        // --- Quick Capture Logic ---
+        // --- Quick Capture Logic with Cloud Sync ---
         const captureInput = document.getElementById('captureInput');
         const captureList = document.getElementById('captureList');
         const captureSuccessMsg = document.getElementById('captureSuccessMsg');
 
         let captureEntries = readStoredArray('quick_capture_notes');
+
+        function updateQuickCaptureBadge(status, text) {
+            const badge = document.getElementById('quickCaptureCloudBadge');
+            const dot = document.getElementById('quickCaptureCloudDot');
+            const label = document.getElementById('quickCaptureCloudText');
+            if (!badge || !dot || !label) return;
+
+            if (status === 'synced') {
+                dot.style.background = '#10b981';
+                badge.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+                badge.style.background = 'rgba(16, 185, 129, 0.12)';
+                badge.style.color = '#6ee7b7';
+                label.innerText = text || 'Synced';
+            } else if (status === 'syncing') {
+                dot.style.background = '#38bdf8';
+                badge.style.borderColor = 'rgba(56, 189, 248, 0.3)';
+                badge.style.background = 'rgba(56, 189, 248, 0.12)';
+                badge.style.color = '#7dd3fc';
+                label.innerText = text || 'Syncing...';
+            } else if (status === 'offline' || status === 'local') {
+                dot.style.background = '#94a3b8';
+                badge.style.borderColor = 'rgba(148, 163, 184, 0.3)';
+                badge.style.background = 'rgba(148, 163, 184, 0.12)';
+                badge.style.color = '#cbd5e1';
+                label.innerText = text || 'Local Only';
+            } else if (status === 'error') {
+                dot.style.background = '#f59e0b';
+                badge.style.borderColor = 'rgba(245, 158, 11, 0.3)';
+                badge.style.background = 'rgba(245, 158, 11, 0.12)';
+                badge.style.color = '#fcd34d';
+                label.innerText = text || 'Cloud Offline';
+            }
+        }
+
+        async function syncQuickCaptureToCloud(notes) {
+            if (!firestoreDb) {
+                updateQuickCaptureBadge('offline', 'Local Only');
+                return;
+            }
+            try {
+                updateQuickCaptureBadge('syncing', 'Saving to Cloud...');
+                const timestamp = Date.now();
+                localStorage.setItem('quick_capture_notes_updated_at', timestamp.toString());
+                await firestoreDb.collection('vault').doc('quick_capture').set({
+                    notes: notes || [],
+                    updatedAt: timestamp,
+                    version: 1
+                }, { merge: true });
+                updateQuickCaptureBadge('synced', 'Synced');
+            } catch (err) {
+                console.warn("Failed to sync quick capture to Firestore:", err);
+                updateQuickCaptureBadge('error', 'Sync Failed');
+            }
+        }
+
+        async function syncQuickCaptureFromCloud(silent = false) {
+            if (!firestoreDb) {
+                updateQuickCaptureBadge('offline', 'Local Only');
+                return false;
+            }
+            try {
+                if (!silent) updateQuickCaptureBadge('syncing', 'Checking Cloud...');
+                const docSnap = await firestoreDb.collection('vault').doc('quick_capture').get();
+                if (docSnap.exists) {
+                    const data = docSnap.data();
+                    const cloudUpdatedAt = data.updatedAt || 0;
+                    const localUpdatedAt = parseInt(localStorage.getItem('quick_capture_notes_updated_at') || '0', 10);
+
+                    if (cloudUpdatedAt > localUpdatedAt && Array.isArray(data.notes)) {
+                        captureEntries = data.notes;
+                        localStorage.setItem('quick_capture_notes', JSON.stringify(captureEntries));
+                        localStorage.setItem('quick_capture_notes_updated_at', cloudUpdatedAt.toString());
+                        renderCaptureList();
+                        updateQuickCaptureBadge('synced', 'Synced');
+                        return true;
+                    } else if (localUpdatedAt > cloudUpdatedAt && captureEntries.length > 0) {
+                        await syncQuickCaptureToCloud(captureEntries);
+                        return true;
+                    } else {
+                        updateQuickCaptureBadge('synced', 'Synced');
+                        return false;
+                    }
+                } else {
+                    if (captureEntries.length > 0) {
+                        await syncQuickCaptureToCloud(captureEntries);
+                    } else {
+                        updateQuickCaptureBadge('synced', 'Cloud Ready');
+                    }
+                    return false;
+                }
+            } catch (err) {
+                console.warn("Quick capture cloud sync error:", err);
+                updateQuickCaptureBadge('error', 'Cloud Offline');
+                return false;
+            }
+        }
+
+        function setupQuickCaptureCloudListener() {
+            if (!firestoreDb) return;
+            try {
+                firestoreDb.collection('vault').doc('quick_capture').onSnapshot((docSnap) => {
+                    if (!docSnap || !docSnap.exists) return;
+                    const data = docSnap.data();
+                    const cloudUpdatedAt = data.updatedAt || 0;
+                    const localUpdatedAt = parseInt(localStorage.getItem('quick_capture_notes_updated_at') || '0', 10);
+
+                    if (cloudUpdatedAt > localUpdatedAt && Array.isArray(data.notes)) {
+                        captureEntries = data.notes;
+                        localStorage.setItem('quick_capture_notes', JSON.stringify(captureEntries));
+                        localStorage.setItem('quick_capture_notes_updated_at', cloudUpdatedAt.toString());
+                        renderCaptureList();
+                        updateQuickCaptureBadge('synced', 'Synced');
+                    } else {
+                        updateQuickCaptureBadge('synced', 'Synced');
+                    }
+                }, (err) => {
+                    console.warn("Quick capture listener warning:", err);
+                    updateQuickCaptureBadge('error', 'Cloud Offline');
+                });
+            } catch (e) {
+                console.warn("Failed to attach quick capture cloud listener:", e);
+            }
+        }
 
         function renderCaptureList() {
             if (captureEntries.length === 0) {
@@ -5381,6 +5633,7 @@
             // Add to beginning for reverse chronological
             captureEntries.unshift(newEntry);
             localStorage.setItem('quick_capture_notes', JSON.stringify(captureEntries));
+            syncQuickCaptureToCloud(captureEntries);
 
             captureInput.value = "";
             renderCaptureList();
@@ -5390,6 +5643,7 @@
         function deleteCapture(index) {
             captureEntries.splice(index, 1);
             localStorage.setItem('quick_capture_notes', JSON.stringify(captureEntries));
+            syncQuickCaptureToCloud(captureEntries);
             renderCaptureList();
         }
 
@@ -5920,12 +6174,26 @@
 
         MoonPhaseWidget.init();
 
-        // Initialize Authenticator Cloud Vault listener and initial sync
+        // Initialize Firestore Cloud listeners and initial syncs
+        try {
+            setupQuickLinksCloudListener();
+            syncQuickLinksFromCloud(true);
+        } catch (qlInitErr) {
+            console.warn("Quick links cloud initialization error:", qlInitErr);
+        }
+
         try {
             setupCloudVaultListener();
             syncVaultFromCloud(true);
         } catch (vaultInitErr) {
             console.warn("Cloud vault initialization error:", vaultInitErr);
+        }
+
+        try {
+            setupQuickCaptureCloudListener();
+            syncQuickCaptureFromCloud(true);
+        } catch (qcInitErr) {
+            console.warn("Quick capture cloud initialization error:", qcInitErr);
         }
 
     </script>
