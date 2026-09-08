@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>KG Dashboard</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
@@ -3205,9 +3207,14 @@
                     firebase.initializeApp(firebaseConfig);
                 }
                 firestoreDb = firebase.firestore();
+                firestoreDb.settings({
+                    experimentalForceLongPolling: true,
+                    useFetchStreams: false
+                });
+                firestoreDb.enablePersistence({ synchronizeTabs: true }).catch(() => {});
             }
         } catch (fbErr) {
-            console.warn("Firebase initialization warning:", fbErr);
+            // Firestore gracefully falls back if unavailable
         }
 
         // Ultra-fast scroll performance optimizer (disables hover recalculations during active scroll)
@@ -3569,7 +3576,6 @@
                 quoteTextElement.textContent = `“${data.quote}”`;
                 quoteAuthorElement.textContent = `— ${data.author || "Unknown"}`;
             } catch (error) {
-                console.warn("Quote fetch failed, attempting fallback API...", error);
                 try {
                     // Fallback open quotes proxy API
                     const response = await fetch("https://api.allorigins.win/get?url=" + encodeURIComponent("https://zenquotes.io/api/random"));
@@ -3604,11 +3610,9 @@
             try {
                 await tryOpenF1Schedule();
             } catch (error) {
-                console.warn("OpenF1 failed, falling back to Jolpi", error);
                 try {
                     await tryJolpiSchedule();
                 } catch (jError) {
-                    console.error("Both OpenF1 and Jolpi failed", jError);
                     f1Container.innerHTML = "Failed to load F1 schedule.";
                 }
 
@@ -3617,11 +3621,10 @@
                     openF1GlobalSyncInterval = setInterval(async () => {
                         try {
                             await tryOpenF1Schedule();
-                            console.log("OpenF1 is back, switched successfully.");
                             clearInterval(openF1GlobalSyncInterval);
                             openF1GlobalSyncInterval = null;
                         } catch (err) {
-                            console.log("OpenF1 still down...");
+                            // Still offline, will retry next interval
                         }
                     }, 60000);
                 }
@@ -3879,7 +3882,6 @@
                 f1DriversCache[sessionKey] = map;
                 return map;
             } catch (err) {
-                console.error("Failed to fetch drivers", err);
                 return {};
             }
         }
@@ -3996,7 +3998,6 @@
                 renderResultsList(resultsList, resultsDiv);
 
             } catch (error) {
-                console.warn("Results fetch failed", error);
                 resultsDiv.innerHTML = "<div class='f1-result-row' style='justify-content:center; color:#ff4a4a'>Results unavailable. Retrying...</div>";
 
                 // If the session completed but fetching failed (e.g., global lockout), ensure we keep polling
@@ -4206,7 +4207,6 @@
                 standingsContainer.innerHTML = html;
 
             } catch (error) {
-                console.warn("F1 Standings fetch failed", error);
                 standingsContainer.innerHTML = "Failed to load standings.";
             }
         }
@@ -4253,7 +4253,6 @@
                 standingsContainer.innerHTML = html;
 
             } catch (error) {
-                console.warn("F1 Constructor Standings fetch failed", error);
                 standingsContainer.innerHTML = "Failed to load standings.";
             }
         }
@@ -4348,7 +4347,6 @@
                 }, { merge: true });
                 updateQuickLinksBadge('synced', 'Synced');
             } catch (err) {
-                console.warn("Failed to sync quick links to Firestore:", err);
                 updateQuickLinksBadge('error', 'Sync Failed');
             }
         }
@@ -4386,7 +4384,6 @@
                     return false;
                 }
             } catch (err) {
-                console.warn("Quick links cloud sync error:", err);
                 updateQuickLinksBadge('error', 'Cloud Offline');
                 return false;
             }
@@ -4410,11 +4407,10 @@
                         updateQuickLinksBadge('synced', 'Synced');
                     }
                 }, (err) => {
-                    console.warn("Quick links listener warning:", err);
                     updateQuickLinksBadge('error', 'Cloud Offline');
                 });
             } catch (e) {
-                console.warn("Failed to attach quick links cloud listener:", e);
+                // Ignore listener attach error if offline
             }
         }
 
@@ -4715,7 +4711,6 @@
                 }, { merge: true });
                 updateCloudSyncBadge('synced', 'Synced');
             } catch (err) {
-                console.warn("Failed to sync vault to Firestore:", err);
                 updateCloudSyncBadge('error', 'Sync Failed');
             }
         }
@@ -4757,7 +4752,7 @@
                                 stopActiveTotp();
                                 renderTotpList();
                             } catch (decErr) {
-                                console.warn("Could not re-decrypt with current password:", decErr);
+                                // Decryption error handled quietly
                             }
                         }
                         return true;
@@ -4778,7 +4773,6 @@
                     return false;
                 }
             } catch (err) {
-                console.warn("Firestore sync error:", err);
                 updateCloudSyncBadge('error', 'Cloud Offline');
                 return false;
             }
@@ -4823,11 +4817,10 @@
                         updateCloudSyncBadge('synced', 'Synced');
                     }
                 }, (err) => {
-                    console.warn("Firestore listener warning:", err);
                     updateCloudSyncBadge('error', 'Cloud Offline');
                 });
             } catch (err) {
-                console.warn("Failed to initialize cloud vault listener:", err);
+                // Ignore listener attach error if offline
             }
         }
 
@@ -5339,7 +5332,7 @@
                             <button type="button" class="totp-copy-btn" title="Copy T-OTP code" onclick="event.stopPropagation(); copyTotp(this.parentElement);">
                                 <svg class="totp-copy-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 2 0 0 1 2-2h9a2 2 2 0 0 1 2 2v1"></path>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                                 </svg>
                                 <span class="totp-copy-btn-text">Copy</span>
                             </button>
@@ -5426,7 +5419,7 @@
                     setTimeout(() => {
                         btn.classList.remove('copied');
                         if (btnText) btnText.textContent = 'Copy';
-                        if (btnIcon) btnIcon.innerHTML = '<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 2 0 0 1-2-2V4a2 2 2 0 0 1 2-2h9a2 2 2 0 0 1 2 2v1"></path>';
+                        if (btnIcon) btnIcon.innerHTML = '<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>';
                     }, 1500);
                 }
 
@@ -5504,7 +5497,6 @@
                 }, { merge: true });
                 updateQuickCaptureBadge('synced', 'Synced');
             } catch (err) {
-                console.warn("Failed to sync quick capture to Firestore:", err);
                 updateQuickCaptureBadge('error', 'Sync Failed');
             }
         }
@@ -5545,7 +5537,6 @@
                     return false;
                 }
             } catch (err) {
-                console.warn("Quick capture cloud sync error:", err);
                 updateQuickCaptureBadge('error', 'Cloud Offline');
                 return false;
             }
@@ -5570,11 +5561,10 @@
                         updateQuickCaptureBadge('synced', 'Synced');
                     }
                 }, (err) => {
-                    console.warn("Quick capture listener warning:", err);
                     updateQuickCaptureBadge('error', 'Cloud Offline');
                 });
             } catch (e) {
-                console.warn("Failed to attach quick capture cloud listener:", e);
+                // Ignore listener attach error if offline
             }
         }
 
@@ -6188,21 +6178,21 @@
             setupQuickLinksCloudListener();
             syncQuickLinksFromCloud(true);
         } catch (qlInitErr) {
-            console.warn("Quick links cloud initialization error:", qlInitErr);
+            // Handled gracefully via offline badge
         }
 
         try {
             setupCloudVaultListener();
             syncVaultFromCloud(true);
         } catch (vaultInitErr) {
-            console.warn("Cloud vault initialization error:", vaultInitErr);
+            // Handled gracefully via offline badge
         }
 
         try {
             setupQuickCaptureCloudListener();
             syncQuickCaptureFromCloud(true);
         } catch (qcInitErr) {
-            console.warn("Quick capture cloud initialization error:", qcInitErr);
+            // Handled gracefully via offline badge
         }
 
     </script>
